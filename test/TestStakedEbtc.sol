@@ -219,6 +219,55 @@ contract TestStakedEbtc is BaseTest {
         assertEq(balAfter - balBefore, 10 ether);
     }
 
+    // forge test --match-test testPreviewExecEquivalenceDeposit
+    function check_previewDeposit(uint128 amt) public {
+        // Set fee
+        vm.prank(defaultGovernance);
+        stakedEbtc.setMintingFee(1e6);
+
+        // Check dep and ensure it won't revert
+        uint256 expectedDeposit = stakedEbtc.previewDeposit(amt);
+        vm.assume(expectedDeposit > 0);
+        
+        // Grant tokens
+        mockEbtc.mint(bob, amt);
+
+        // Deposit
+        uint256 shareB4 = stakedEbtc.balanceOf(address(bob));
+        vm.prank(bob);
+        stakedEbtc.deposit(amt, address(bob));
+        uint256 shareAfter = stakedEbtc.balanceOf(address(bob));
+
+        assert(expectedDeposit == shareAfter - shareB4);
+    }
+
+    // forge test --match-test testPreviewExecEquivalenceMint
+    function check_previewMint(uint128 amt) public {
+        vm.assume(amt > 0);
+        
+        // Set fee
+        vm.prank(defaultGovernance);
+        stakedEbtc.setMintingFee(1e6);
+
+        
+
+        // Check dep and ensure it won't revert
+        uint256 expectedDeposit = stakedEbtc.previewMint(amt);
+        
+        // Grant tokens
+        mockEbtc.mint(bob, expectedDeposit);
+
+
+        // Deposit
+        uint256 tokB4 = mockEbtc.balanceOf(address(bob));
+        vm.prank(bob);
+        stakedEbtc.mint(amt, address(bob));
+        uint256 tokAfter = mockEbtc.balanceOf(address(bob));
+
+        assert(expectedDeposit == tokB4 - tokAfter);
+    }
+
+
     function testZeroSupplyDonation() public {
         // remove initial shares
         uint256 initShares = stakedEbtc.balanceOf(defaultGovernance);
